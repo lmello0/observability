@@ -1,0 +1,81 @@
+# x-logging: &default-logging
+#   driver: loki
+#   options:
+#     loki-url: 'http://localhost:3100/api/prom/push'
+    # loki-pipeline-stages: |
+    #   - multiline:
+    #       firstline: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}'
+    #       max_wait_time: 3s
+    #   - regex:
+    #       expression: '^(?P<date>\d{4}-\d{2}-\d{2}) (?P<time>\d{2}:\d{2}:\d{2}.\d{3}) (?P<message>(?s:.*))$$'
+
+services:
+  # Infra
+
+  # loki:
+  #   image: grafana/loki
+  #   container_name: loki
+  #   command: -config.file=/etc/loki/local-config.yaml
+  #   ports:
+  #     - 3100:3100
+  #   volumes:
+  #     - ./:/mnt/config
+  #   networks:
+  #     - observability
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    # depends_on:
+    #   - loki
+    networks:
+      - observability
+    # logging: *default-logging
+  
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    ports:
+      - 3000:3000
+    networks:
+      - observability
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    depends_on:
+      # - loki
+      - prometheus
+    # logging: *default-logging
+
+  # App
+
+  spring:
+    build: ./app
+    container_name: spring-observability
+    # environment:
+    #   - MANAGEMENT_METRICS_TAGS_APPLICATION=spring-observability
+    #   - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    #   - OTEL_SERVICE_NAME=spring-observability
+    #   - OTEL_RESOURCE_ATTRIBUTES=compose_service=spring-observability
+    #   - OTEL_METRICS_EXPORTER=none
+    ports:
+      - 8080:8080
+    networks:
+      - observability
+    # depends_on:
+    #   - loki
+    #   - tempo
+    # logging: *default-logging
+
+networks:
+  observability:
+    driver: bridge
+    name: observability
+
+volumes:
+  prometheus-data:
+  grafana-storage:

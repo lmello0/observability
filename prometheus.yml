@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 10s
+  scrape_timeout: 5s
+
+scrape_configs:
+  - job_name: 'spring-observability'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['spring-observability:8080']
+        labels:
+          application: 'Spring Observability'
+  
+  - job_name: 'prometheus'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          application: 'Prometheus'
